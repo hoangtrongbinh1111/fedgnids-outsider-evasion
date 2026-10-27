@@ -1,6 +1,6 @@
 # fedgnids-outsider-evasion
 
-Code for the paper *Robust aggregation with temporal trust against outsider evasion of federated graph-based intrusion detection* (under review).
+Code for the paper *Trust-weighted geometric-median aggregation against outsider evasion of federated graph-based intrusion detection* (under review).
 
 The repository studies an outsider who controls a few compromised hosts, but no federated client and no log pipeline, and who injects *covering connections* at inference time so that its malicious edges are scored as benign by a federated graph-based network intrusion detection system (GNIDS). It contains
 
@@ -12,13 +12,13 @@ The repository studies an outsider who controls a few compromised hosts, but no 
 
 The code builds on the ENTENTE implementation (Xu et al., <https://github.com/uci-dsp-lab/ENTENTE>), which builds on Euler. Its license (BSD 3-Clause) is kept in `LICENSE`. Only the `Euler/` part of ENTENTE is used.
 
-The released ENTENTE federated loop contains three defects, which are corrected here (`--fl_fix 1`, the default; `--fl_fix 0` reproduces the released behaviour):
+In our runs, three implementation details of the released ENTENTE federated loop biased training away from the protocol described in the ENTENTE paper. They are corrected here (`--fl_fix 1`, the default; `--fl_fix 0` reproduces the released behaviour):
 
 1. clients start from independent random initializations instead of the global model;
 2. norm bounding clips the full weight vector instead of the client update;
-3. the momentum aggregation counts the first client twice, so the parameters grow by about 1.17x per round and training diverges; the corrected code normalizes the aggregation weights.
+3. the momentum aggregation gives the first client twice its weight, so the parameters grow by about 1.17x per round and training diverges; the corrected code normalizes the aggregation weights.
 
-These defects will be reported to the ENTENTE authors.
+This comparison is meant to document reproducibility, not to criticize ENTENTE; we will share these observations with the ENTENTE authors.
 
 ## Setup
 
