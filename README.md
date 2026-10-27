@@ -14,7 +14,7 @@ The code builds on the ENTENTE implementation (Xu et al., <https://github.com/uc
 
 In our runs, three implementation details of the released ENTENTE federated loop biased training away from the protocol described in the ENTENTE paper. They are corrected here (`--fl_fix 1`, the default; `--fl_fix 0` reproduces the released behaviour):
 
-1. clients start from independent random initializations instead of the global model;
+1. clients start the first round from independent random initializations instead of the global model;
 2. norm bounding clips the full weight vector instead of the client update;
 3. the momentum aggregation gives the first client twice its weight, so the parameters grow by about 1.17x per round and training diverges; the corrected code normalizes the aggregation weights.
 
@@ -32,7 +32,10 @@ Training (corrected federated training, 30 rounds; `--agg gcn` is ENTENTE-GCN, `
 python Euler/rona_run.py --fed Momentum --agg gcn   --fedT 30 --seed 0 --tag F_entente_gcn_s0
 python Euler/rona_run.py --fed Momentum --agg gmedn --fedT 30 --seed 0 --tag F_entente_gmedn_s0
 python Euler/rona_run.py --fed FedAvg   --agg gmedn --fedT 30 --fl_fix 0 --seed 0 --tag E0_fedavg_gmedn_s0   # released configuration
+python Euler/rona_run.py --fed Momentum --agg gmedn --fedT 30 --K 6 --cluster_fname optc_k6.json --seed 0 --tag F_k6_gmedn_s0   # one silo per internal /24 subnet
 ```
+
+The main OpTC comparison uses seeds 0-9 (`--seed`).
 
 Attacks (`--plugin_trust frozen` adds the temporal trust of GMed-T at test time; budgets are covering edges per malicious edge of the window):
 
@@ -60,16 +63,18 @@ Baselines and controls use `rona_run_b.py` / `rona_attack_b.py` with `--agg soft
 | Script | Purpose |
 |---|---|
 | `rona_replay.py` | re-scores saved attack plans (per-pair statistics, TPR at fixed FPR) |
-| `rona_bootstrap.py` | crossed seed x host-pair bootstrap intervals |
-| `rona_fed_or.py`, `rona_fed_table.py` | cross-silo detection with per-silo cutoffs and OR fusion |
+| `rona_bootstrap.py` | crossed seed x host-pair bootstrap intervals (`RONA_SEEDS=0,...,9` selects the seeds) |
+| `rona_seed_summary.py` | mean and standard deviation over seeds of the main runs, the trust sensitivity under attack and the single-component controls |
+| `rona_val_trust.py` | validation AP of plug-in trust over a grid of trust floors and saturation counts (label-free selection check) |
+| `rona_fed_or.py`, `rona_fed_table.py` | cross-silo detection with per-silo cutoffs and OR fusion (`--prefix F_k6 --views global _c4 _c5` for K=6) |
 | `rona_irls_gap2.py` | distance between the deployed K-step IRLS layer and the exact geometric median |
-| `rona_bound_check.py` | numerical check of the influence bound on single target nodes |
+| `rona_bound_check.py` | numerical check of the bound on the displacement of the median on single target nodes |
 | `rona_eval_trust.py`, `rona_novelty_baseline.py` | trust variants and novelty-rule baselines |
 | `rona_make_prepos.py`, `rona_make_synth_*.py` | training-time pre-positioned edges; semi-synthetic campaigns |
 | `rona_diag_*.py` | validation diagnostics used to set the Soft Median temperature and the RUNG threshold |
 | `rona_qrun2.sh`, `rona_qrun_gpu.sh` | simple job queues (`train`/`job` lines) used to run the experiments |
 
-`rona_selftest.py` checks that the modified encoder reproduces the original GCN layer, and `test_robust_conv_ext.py` tests the baseline aggregators. Files added by this study: the `rona_*` scripts, `models/robust_conv.py`, `models/robust_conv_ext.py`, `loaders/rona_hooks.py`, `loaders/load_lanl.py`, `optc_subnet.json` and `test_robust_conv_ext.py`. `loaders/tdata.py` and `models/embedders.py` are ENTENTE files extended to pass trust weights to the encoder; all other files under `Euler/` are unchanged from ENTENTE.
+`rona_selftest.py` checks that the modified encoder reproduces the original GCN layer, and `test_robust_conv_ext.py` tests the baseline aggregators. Files added by this study: the `rona_*` scripts, `models/robust_conv.py`, `models/robust_conv_ext.py`, `loaders/rona_hooks.py`, `loaders/load_lanl.py`, `optc_subnet.json`, `optc_k6.json` and `test_robust_conv_ext.py`. `loaders/tdata.py` and `models/embedders.py` are ENTENTE files extended to pass trust weights to the encoder; all other files under `Euler/` are unchanged from ENTENTE.
 
 ## License
 

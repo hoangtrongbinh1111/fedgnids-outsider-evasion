@@ -45,7 +45,7 @@ import os
 import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Exps', 'rona')
-SEEDS = [0, 1, 2, 3, 4]
+SEEDS = [int(x) for x in os.environ.get('RONA_SEEDS', '0,1,2,3,4').split(',')]
 CONDS = ['clean', 'b1', 'b10']
 
 # model -> (tag pattern, {cond: npz basename}, attack JSON with the reference SRs, required)
@@ -67,7 +67,7 @@ MODELS = {
     'SoftMed+trust': ('F_entente_softmedT001_s%d',
                       {'clean': 'replaypt_clean.npz', 'b1': 'replaypt_plan_b1_ptfrozen.npz',
                        'b10': 'replaypt_plan_b10_ptfrozen.npz'},
-                      'attack_ptfrozen.json', True),
+                      'attack_ptfrozen.json', os.environ.get('RONA_SEEDS') is None),
 }
 CONTRASTS = [('GMed-T', 'GCN'), ('GMed-T', 'SoftMed+trust'), ('GMed-T', 'gmedn'), ('GMed-T', 'GCN+trust')]
 TPR_MODELS = ['GCN', 'GMed-T', 'SoftMed+trust', 'GCN+trust', 'gmedn']
@@ -150,11 +150,11 @@ def main():
     # ---- replicate draws (shared by everything)
     rng = np.random.default_rng(c.rng)
     B = c.B
-    Cs = np.stack([np.bincount(rng.integers(0, 5, 5), minlength=5) for _ in range(B)]).astype(float)
+    Cs = np.stack([np.bincount(rng.integers(0, len(SEEDS), len(SEEDS)), minlength=len(SEEDS)) for _ in range(B)]).astype(float)
     Wp = np.stack([np.bincount(rng.integers(0, P, P), minlength=P) for _ in range(B)]).astype(float)
-    Cs_indep = {m: np.stack([np.bincount(rng.integers(0, 5, 5), minlength=5) for _ in range(B)]).astype(float)
+    Cs_indep = {m: np.stack([np.bincount(rng.integers(0, len(SEEDS), len(SEEDS)), minlength=len(SEEDS)) for _ in range(B)]).astype(float)
                 for m in models}
-    ones_s, ones_p = np.ones((B, 5)), np.ones((B, P))
+    ones_s, ones_p = np.ones((B, len(SEEDS))), np.ones((B, P))
 
     def Mmat(m, k, tpr=False):
         D = MISS1 if tpr else MISS
@@ -252,10 +252,10 @@ def main():
                                           top5=float(srt[:5].sum() / T) if T else 0.0)
     out['miss_concentration'] = conc
 
-    with open(os.path.join(ROOT, 'bootstrap.json'), 'w') as f:
+    with open(os.path.join(ROOT, 'bootstrap%s.json' % os.environ.get('RONA_SUFFIX', '')), 'w') as f:
         json.dump(out, f, indent=1)
-    write_md(out, os.path.join(ROOT, 'bootstrap.md'))
-    print('wrote', os.path.join(ROOT, 'bootstrap.json'), os.path.join(ROOT, 'bootstrap.md'))
+    write_md(out, os.path.join(ROOT, 'bootstrap%s.md' % os.environ.get('RONA_SUFFIX', '')))
+    print('wrote', os.path.join(ROOT, 'bootstrap%s.json' % os.environ.get('RONA_SUFFIX', '')), os.path.join(ROOT, 'bootstrap%s.md' % os.environ.get('RONA_SUFFIX', '')))
 
 
 def pc(x):

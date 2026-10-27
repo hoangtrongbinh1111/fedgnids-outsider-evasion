@@ -21,7 +21,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--seeds', nargs='+', type=int, default=[0, 1, 2])
     ap.add_argument('--budgets', nargs='+', type=int, default=[1, 10])
+    ap.add_argument('--prefix', default='F_sub', help='F_sub (K=4) or F_k6 (K=6)')
+    ap.add_argument('--views', nargs='+', default=['', '_c3', '_c2'], help="plan suffixes ('' = global view)")
+    ap.add_argument('--out', default='fed_table.json')
     c = ap.parse_args()
+    VIEWS = [v if v != 'global' else '' for v in c.views]
+    names = ['global' if v == '' else 'silo' + v[2:] for v in VIEWS]
     out = {}
     for det, sf in (('gcn', ''), ('gmedn', '_ptfrozen')):
         for op in ('cutoff', 'fpr0.01', 'fpr0.001'):
@@ -29,7 +34,7 @@ def main():
                     ['b%d%s' % (b, m) for b in c.budgets for m in ('', '_st', '_flag', '_cross', '_view')]}
             seeds = []
             for s in c.seeds:
-                fn = os.path.join(ROOT, 'F_sub_%s_s%d' % (det, s), 'fed_or.json')
+                fn = os.path.join(ROOT, '%s_%s_s%d' % (c.prefix, det, s), 'fed_or.json')
                 if not os.path.exists(fn):
                     continue
                 d = json.load(open(fn))
@@ -47,7 +52,7 @@ def main():
                     rows['b%d_st' % b].append(100 * max(x['SR_or_stealthy'] for x in cand))
                     rows['b%d_flag' % b].append(100 * min(x['inj_flag_or'] for x in cand))
                     rows['b%d_cross' % b].append(100 * max(x['SR_or_cross'] for x in cand))
-                    rows['b%d_view' % b].append(['global', 'silo3', 'silo2'][i])
+                    rows['b%d_view' % b].append(names[i])
             if not seeds:
                 continue
             key = '%s %s' % (det, op)
@@ -63,7 +68,7 @@ def main():
                                    'min': float(a.min()), 'max': float(a.max()), 'per_seed': v}
                     print('   %-12s %6.1f +- %4.1f  [%5.1f, %5.1f]  %s' % (k, a.mean(), out[key][k]['std'], a.min(), a.max(),
                                                                     ' '.join('%.1f' % x for x in v)))
-    json.dump(out, open(os.path.join(ROOT, 'fed_table.json'), 'w'), indent=1)
+    json.dump(out, open(os.path.join(ROOT, c.out), 'w'), indent=1)
 
 
 if __name__ == '__main__':
